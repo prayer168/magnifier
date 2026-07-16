@@ -306,7 +306,7 @@ canvas{display:block;width:100%;max-width:100%;border-radius:10px;}
   <div class="sec-title">🕯️ 蠟燭成像模擬台</div>
   <div class="sec-desc">拖曳滑桿，改變蠟燭與凸透鏡的距離，即時觀察成像變化！（本模擬焦距 f＝20 公分）</div>
   <div class="card-shell">
-    <canvas id="simC" height="300"></canvas>
+    <canvas id="simC" height="440"></canvas>
     <div class="slider-row">
       <label>🕯️ 物距</label>
       <div class="slider-wrap">
@@ -343,7 +343,7 @@ canvas{display:block;width:100%;max-width:100%;border-radius:10px;}
   <div class="sec-title">📐 光線折射路徑動畫</div>
   <div class="sec-desc">調整物距，觀察三條標準光線如何通過凸透鏡折射，理解成像的幾何原理。</div>
   <div class="card-shell">
-    <canvas id="rayC" height="380"></canvas>
+    <canvas id="rayC" height="560"></canvas>
     <div class="slider-row">
       <label>🕯️ 物距</label>
       <div class="slider-wrap">
@@ -358,6 +358,7 @@ canvas{display:block;width:100%;max-width:100%;border-radius:10px;}
       <option value="70"></option><option value="80"></option><option value="90"></option>
     </datalist>
   </div>
+  <div class="info-strip" id="rayResult"></div>
   <div class="info-strip">
     <strong>三條標準光線說明</strong>
     🔴 <b>平行光軸</b>：入射後折射通過右焦點 F'<br>
@@ -487,11 +488,11 @@ const F = 20; // focal length cm
 const OBJ_H = 20; // object height cm
 
 function imgInfo(u) {
-  if (u > 2*F+1)  return {label:'倒立縮小的像（實像）',  color:'#1565c0', inv:true,  virt:false, desc:'物距大於2倍焦距，光線聚焦在另一側，形成倒立、縮小的實像，可投影在螢幕上。生活應用：相機、眼睛。'};
-  if (u >= 2*F-1) return {label:'倒立等大的像（實像）',  color:'#6a1b9a', inv:true,  virt:false, desc:'物距等於2倍焦距，形成倒立、等大的實像。此距離也稱為「等倍點」。'};
-  if (u > F+1)    return {label:'倒立放大的像（實像）',  color:'#00838f', inv:true,  virt:false, desc:'物距在1~2倍焦距之間，形成倒立、放大的實像。生活應用：投影機、幻燈機（底片須倒放）。'};
-  if (u >= F-2)   return {label:'模糊不清（接近焦點）',  color:'#e65100', inv:false, virt:false, desc:'物距接近焦距，光線折射後趨近平行，無法聚焦成清楚的像。此距離可讓凸透鏡聚光點火！'};
-  return           {label:'正立放大的像（虛像）',         color:'#2e7d32', inv:false, virt:true,  desc:'物距小於焦距，光線折射後發散，向後延伸交於同側，形成正立、放大的虛像。生活應用：放大鏡、老花眼鏡。'};
+  if (u > 2*F) return {label:'倒立縮小的像（實像）', color:'#1565c0', inv:true, virt:false, desc:'物距大於2倍焦距，光線聚焦在另一側，形成倒立、縮小的實像，可投影在螢幕上。生活應用：相機、眼睛。'};
+  if (u === 2*F) return {label:'倒立等大的像（實像）', color:'#6a1b9a', inv:true, virt:false, desc:'物距等於2倍焦距，形成倒立、等大的實像。此距離也稱為「等倍點」。'};
+  if (u > F) return {label:'倒立放大的像（實像）', color:'#00838f', inv:true, virt:false, desc:'物距在1到2倍焦距之間，形成倒立、放大的實像。越接近焦距，像距與像高越大。生活應用：投影機、幻燈機（底片須倒放）。'};
+  if (u === F) return {label:'無有限成像（正好在焦點）', color:'#e65100', inv:false, virt:false, desc:'物距等於焦距，折射後光線互相平行，像距趨近無限遠，因此螢幕上無法接到清楚的有限像。'};
+  return {label:'正立放大的像（虛像）', color:'#2e7d32', inv:false, virt:true, desc:'物距小於焦距，光線折射後發散，向後延伸交於同側，形成正立、放大的虛像。越接近焦距，虛像距離與像高越大。生活應用：放大鏡、老花眼鏡。'};
 }
 
 // ─── TAB 1: SIMULATION ─────────────────────────────────────
@@ -501,7 +502,7 @@ const simCtx    = simCanvas.getContext('2d');
 function resizeSim() {
   const w = simCanvas.parentElement.clientWidth - 48;
   simCanvas.width  = Math.max(w, 320);
-  simCanvas.height = 300;
+  simCanvas.height = 440;
 }
 
 function updateSim() {
@@ -519,9 +520,9 @@ function drawSim(u, info) {
   c.clearRect(0,0,W,H);
   c.fillStyle='#f7faff'; c.fillRect(0,0,W,H);
 
-  const sc   = Math.min((W*0.42)/F, 5);   // px per cm
   const lx   = Math.round(W * 0.52);       // lens x
-  const ay   = Math.round(H * 0.55);       // axis y
+  const ay   = Math.round(H * 0.45);       // axis y
+  const sc   = Math.min((W*0.44)/90, 3.2);
   const fPx  = F * sc;
   const ch   = OBJ_H * sc;                  // candle height px
 
@@ -551,41 +552,51 @@ function drawSim(u, info) {
     drawHeightLabel(c, ox-18, ay-ch, ay, '物高 '+OBJ_H+' cm', '#92400e', 'left');
     c.fillStyle='#92400e'; c.font='bold 13px sans-serif';
     c.fillText('物體', ox-22, ay-ch-22);
-    // distance arrow
-    arrowLine(c, ox, ay+38, lx, ay+38, '#90a4ae', 1);
-    c.fillStyle='#546e7a'; c.font='13px sans-serif';
-    const mid = (ox+lx)/2;
-    c.fillText('物距 '+u+' cm', mid-36, ay+56);
+    drawDistanceLabel(c, ox, lx, ay+44, '物距 '+u+' cm', '#546e7a');
   }
 
   // image
-  if (!info.virt && u > F+2 && u < F-2 || (!info.virt && Math.abs(u-F)>2 && u>F)) {
+  if (!info.virt && u>F) {
     // real image
     const v = F*u/(u-F);
     const ix = lx + v*sc;
     const ih = ch*(v/u);
-    if (ix > lx+4 && ix < W-8) {
-      const drawnIh = Math.min(ih,H*0.38);
-      drawCandle(c, ix, ay, drawnIh, true, 0.6);
+    if (ix > lx+4 && ix < W-8 && ay+ih < H-12) {
       const imgH = OBJ_H*Math.abs(v/u);
-      drawHeightLabel(c, ix+18, ay, ay+drawnIh, '像高 '+formatCm(imgH)+' cm', '#0277bd', 'right');
-      const imgLabelY = Math.min(ay+drawnIh+20, H-28);
+      drawCandle(c, ix, ay, ih, true, 0.6);
+      drawHeightLabel(c, ix+18, ay, ay+ih, '像高 '+formatCm(imgH)+' cm', '#0277bd', 'right');
+      drawDistanceLabel(c, lx, ix, ay+76, '像距 '+formatCm(v)+' cm', '#0277bd');
+      const imgLabelY = Math.min(ay+ih*0.55, H-28);
       drawTextLabel(c, ix-12, imgLabelY, '像', '#0277bd', 'right');
-      drawTextLabel(c, ix-12, imgLabelY+16, '像距 '+formatCm(v)+' cm', '#0277bd', 'right');
+    } else {
+      const imgH = OBJ_H*Math.abs(v/u);
+      drawImageHint(c, 'right', ay, [
+        '實像在凸透鏡右側',
+        ix >= W ? '像在右方較遠處' : '像高太大，超出畫面',
+        '像距 '+formatCm(v)+' cm',
+        '像高 '+formatCm(imgH)+' cm'
+      ], '#0277bd');
     }
   } else if (info.virt) {
     // virtual image same side
     const v  = F*u/(u-F); // negative
     const ix = lx + v*sc; // left of lens
     const ih = Math.abs(ch*(v/u));
-    if (ix > 8 && ix < lx-4) {
-      const drawnIh = Math.min(ih, H*0.45);
-      drawCandle(c, ix, ay, drawnIh, false, 0.45, true);
+    if (ix > 8 && ix < lx-4 && ay-ih > 12) {
       const imgH = OBJ_H*Math.abs(v/u);
-      drawHeightLabel(c, ix-18, ay-drawnIh, ay, '像高 '+formatCm(imgH)+' cm', '#2e7d32', 'left');
+      drawCandle(c, ix, ay, ih, false, 0.45, true);
+      drawHeightLabel(c, ix-18, ay-ih, ay, '像高 '+formatCm(imgH)+' cm', '#2e7d32', 'left');
+      drawDistanceLabel(c, ix, lx, ay+76, '像距 '+formatCm(Math.abs(v))+' cm', '#2e7d32');
       c.fillStyle='#2e7d32'; c.font='13px sans-serif';
-      c.fillText('虛像（正立放大）', ix-44, ay-drawnIh-16);
-      c.fillText('像距 '+formatCm(Math.abs(v))+' cm', ix-34, ay+22);
+      c.fillText('虛像（正立放大）', ix-44, ay-ih-16);
+    } else {
+      const imgH = OBJ_H*Math.abs(v/u);
+      drawImageHint(c, 'left', ay, [
+        '虛像在凸透鏡左側',
+        ix < 8 ? '虛像在左方較遠處' : '像高太大，超出畫面',
+        '像距 '+formatCm(Math.abs(v))+' cm',
+        '像高 '+formatCm(imgH)+' cm'
+      ], '#2e7d32');
     }
   }
 }
@@ -597,13 +608,40 @@ const rayCtx    = rayCanvas.getContext('2d');
 function resizeRay() {
   const w = rayCanvas.parentElement.clientWidth - 48;
   rayCanvas.width  = Math.max(w, 320);
-  rayCanvas.height = 380;
+  rayCanvas.height = 560;
 }
 
 function updateRay() {
   const u = +document.getElementById('slRay').value;
   document.getElementById('rdVal').textContent = u + ' cm';
+  const result = raySummary(u);
+  document.getElementById('rayResult').innerHTML =
+    `<strong style="color:${result.color}">${result.label}</strong><span>${result.desc}</span>`;
   drawRay(u);
+}
+
+function raySummary(u) {
+  if (u === F) {
+    return {label:'正好在焦點：無有限成像', color:'#e65100',
+      desc:'　物距等於焦距，折射後光線互相平行，像距趨近無限遠，因此螢幕上無法接到清楚的有限像。'};
+  }
+  const v = F*u/(u-F);
+  const imgH = OBJ_H*Math.abs(v/u);
+  if (u > 2*F) {
+    return {label:'倒立縮小的實像', color:'#1565c0',
+      desc:`　像在透鏡另一側，像距約 ${formatCm(v)} cm，像高約 ${formatCm(imgH)} cm。`};
+  }
+  if (u === 2*F) {
+    return {label:'倒立等大的實像', color:'#6a1b9a',
+      desc:`　物距約等於 2 倍焦距，像距約 ${formatCm(v)} cm，像高約 ${formatCm(imgH)} cm。`};
+  }
+  if (u > F) {
+    return {label:'倒立放大的實像', color:'#00838f',
+      desc:`　像在透鏡另一側，像距約 ${formatCm(v)} cm，像高約 ${formatCm(imgH)} cm；越接近焦點，像距與像高越大。`};
+  }
+  const virtualDistance = Math.abs(v);
+  return {label:'正立放大的虛像', color:'#2e7d32',
+    desc:`　像在物體同側，像距約 ${formatCm(virtualDistance)} cm，像高約 ${formatCm(imgH)} cm；越接近焦點，虛像距離與像高越大。虛像只能用眼睛觀察，無法投影在螢幕上。`};
 }
 
 function drawRay(u) {
@@ -616,11 +654,19 @@ function drawRay(u) {
   for(let x=0;x<W;x+=50){line(c,x,0,x,H);}
   for(let y=0;y<H;y+=50){line(c,0,y,W,y);}
 
-  const sc  = Math.min((W*0.40)/F, 5.5);
   const lx  = Math.round(W*0.52);
-  const ay  = Math.round(H*0.50);
+  const nearFocus = u === F;
+  const real = u > F;
+  // Keep the optical axis and lens proportions aligned with Experiment 1.
+  // The previous real-image layout moved the axis too high, clipping the
+  // upper half of the lens as soon as the object distance exceeded 20 cm.
+  const ay  = Math.round(H * 0.45);
+  const sc  = Math.min((W*0.44)/90, 3.2);
   const fPx = F*sc;
   const oh  = OBJ_H * sc;
+  const lensHeight = H * 0.70;
+  const lensHalf = lensHeight/2;
+  let greenLegend = '通過焦點的光線';
 
   // axis
   dashed(c,10,ay,W-10,ay,'#90a4ae',2,[10,5]);
@@ -637,25 +683,41 @@ function drawRay(u) {
   });
 
   // lens
-  drawLens(c, lx, ay, H*0.75);
+  drawLens(c, lx, ay, lensHeight);
 
   // object
   const ox = lx - u*sc;
   const oy = ay - oh;
   if (ox>8) {
-    arrowLine(c, ox,ay, ox,oy, '#f59e0b',3);
+    drawCandle(c, ox, ay, oh, false, 1);
     drawHeightLabel(c, ox-18, oy, ay, '物高 '+OBJ_H+' cm', '#92400e', 'left');
-    c.fillStyle='#f97316';
-    c.beginPath();c.ellipse(ox,oy-9,5,9,0,0,Math.PI*2);c.fill();
-    c.fillStyle='#92400e';c.font='bold 14px sans-serif';c.fillText('物',ox-8,oy-24);
+    c.fillStyle='#92400e';c.font='bold 13px sans-serif';
+    c.fillText('物體', ox-22, oy-22);
   }
 
-  const real = u > F+2;
-
-  if (real) {
+  if (nearFocus) {
+    // A parallel incident ray still refracts through the far focal point.
+    // With the object at F, this outgoing ray is parallel to the ray through O.
+    c.strokeStyle='#ef4444';c.lineWidth=2.5;
+    line(c,ox,oy,lx,oy);
+    const slp1=(ay-oy)/fPx;
+    const redEndY=oy+slp1*(W-8-lx);
+    line(c,lx,oy,W-8,redEndY);
+    arrowHead(c,W-8,redEndY,'#ef4444',Math.atan2(redEndY-oy,W-8-lx));
+    const slp3=(ay-oy)/(lx-ox);
+    c.strokeStyle='#1565c0';c.lineWidth=2.5;
+    line(c,ox,oy,lx,ay);
+    line(c,lx,ay,W-8,ay+slp3*(W-8-lx));
+    drawImageHint(c,'right',ay,[
+      '接近焦點',
+      '光線近似平行',
+      '無清楚成像'
+    ],'#e65100');
+  } else if (real) {
     const v  = F*u/(u-F);
     const ix = lx + v*sc;
     const iy = ay + oh*(v/u); // inverted → below axis
+    const imageInFrame = ix>lx+4 && ix<W-8 && iy>8 && iy<H-8;
 
     // ─ Ray 1 (red): parallel to axis → right focal pt
     const r1x=lx, r1y=oy; // hits lens at tip height
@@ -664,34 +726,49 @@ function drawRay(u) {
     line(c,ox,oy,r1x,r1y);
     // after lens towards focal pt direction extended to ix
     const slp1=(rfy-r1y)/(rfx-r1x);
-    if(ix>lx+4&&ix<W-8){
+    if(imageInFrame){
       line(c,r1x,r1y,ix,iy);
       arrowHead(c,ix,iy,'#ef4444',Math.atan2(iy-r1y,ix-r1x));
     } else {
       line(c,r1x,r1y,W-8,r1y+slp1*(W-8-r1x));
     }
 
-    // ─ Ray 2 (green): through left F → parallel after lens
+    // ─ Ray 2 (green): through left F if it enters the visible lens;
+    // otherwise use an auxiliary ray through the visible lens aperture.
     const lfx=lx-fPx;
-    // direction from oy to lens: slope = (atLensY - oy)/(lx - ox)
-    // ray from (ox,oy) passes through (lfx,ay) extended to (lx,?)
     const slp2=(ay-oy)/(lfx-ox);
     const r2y=oy+slp2*(lx-ox);
+    const lensTop = ay-lensHalf+18;
+    const lensBot = ay+lensHalf-18;
+    const r2InsideLens = r2y >= lensTop && r2y <= lensBot;
     c.strokeStyle='#16a34a';c.lineWidth=2.5;
-    line(c,ox,oy,lx,r2y);
-    // after lens: horizontal (parallel to axis)
-    if(ix>lx+4&&ix<W-8){
-      line(c,lx,r2y,ix,r2y);
-      arrowHead(c,ix,r2y,'#16a34a',0);
+    if (r2InsideLens) {
+      line(c,ox,oy,lx,r2y);
+      if(imageInFrame){
+        line(c,lx,r2y,ix,r2y);
+        arrowHead(c,ix,r2y,'#16a34a',0);
+      } else {
+        line(c,lx,r2y,W-8,r2y);
+      }
     } else {
-      line(c,lx,r2y,W-8,r2y);
+      greenLegend = '通過鏡片的輔助光線';
+      const lensY = Math.max(lensTop, Math.min(lensBot, r2y));
+      line(c,ox,oy,lx,lensY);
+      if(imageInFrame){
+        line(c,lx,lensY,ix,iy);
+        arrowHead(c,ix,iy,'#16a34a',Math.atan2(iy-lensY,ix-lx));
+      } else {
+        const ex = W-8;
+        const slpAux = (iy-lensY)/(ix-lx);
+        line(c,lx,lensY,ex,lensY+slpAux*(ex-lx));
+      }
     }
 
     // ─ Ray 3 (blue): through optical centre O
     const slp3=(ay-oy)/(lx-ox);
     c.strokeStyle='#1565c0';c.lineWidth=2.5;
     line(c,ox,oy,lx,ay);
-    if(ix>lx+4&&ix<W-8){
+    if(imageInFrame){
       line(c,lx,ay,ix,iy);
       arrowHead(c,ix,iy,'#1565c0',Math.atan2(iy-ay,ix-lx));
     } else {
@@ -700,15 +777,20 @@ function drawRay(u) {
     }
 
     // image
-    if(ix>lx+4&&ix<W-8){
-      arrowLine(c,ix,ay,ix,iy,'#2196f3',3);
+    if(imageInFrame){
       const imgH = OBJ_H*Math.abs(v/u);
+      drawCandle(c, ix, ay, Math.abs(iy-ay), true, 0.6);
       drawHeightLabel(c, ix+18, ay, iy, '像高 '+formatCm(imgH)+' cm', '#0d47a1', 'right');
-      c.beginPath();c.arc(ix,iy,6,0,Math.PI*2);
-      c.fillStyle='#dc2626';c.fill();
-      c.fillStyle='#0d47a1';c.font='bold 14px sans-serif';
       drawTextLabel(c, ix-12, ay+(iy-ay)/2, '像', '#0d47a1', 'right');
-      drawTextLabel(c, ix-12, iy+22, '像距 '+formatCm(v)+' cm', '#0d47a1', 'right');
+      drawDistanceLabel(c, lx, ix, ay+76, '像距 '+formatCm(v)+' cm', '#0d47a1');
+    } else {
+      const imgH = OBJ_H*Math.abs(v/u);
+      drawImageHint(c, 'right', ay, [
+        '實像在凸透鏡右側',
+        ix >= W ? '像在右方較遠處' : '像高太大，超出畫面',
+        '像距 '+formatCm(v)+' cm',
+        '像高 '+formatCm(imgH)+' cm'
+      ], '#0d47a1');
     }
 
   } else {
@@ -736,22 +818,26 @@ function drawRay(u) {
     dashed(c,lx,ay,Math.max(10,ix),iy,'#1565c0',1.5,[5,4]);
 
     // virtual image
-    if(ix>8&&ix<lx-2){
-      c.setLineDash([6,4]);
-      c.strokeStyle='#2e7d32';c.lineWidth=2;
-      c.beginPath();c.moveTo(ix,ay);c.lineTo(ix,iy);c.stroke();
-      c.setLineDash([]);
+    if(ix>8&&ix<lx-2&&iy>8&&iy<H-8){
       const imgH = OBJ_H*Math.abs(v/u);
+      drawCandle(c, ix, ay, Math.abs(ay-iy), false, 0.45, true);
       drawHeightLabel(c, ix-18, iy, ay, '像高 '+formatCm(imgH)+' cm', '#1b5e20', 'left');
       c.fillStyle='#1b5e20';c.font='bold 14px sans-serif';
-      c.fillText('虛像',ix-38,iy-12);
-      c.font='12px sans-serif';
-      c.fillText('像距 '+formatCm(Math.abs(v))+' cm',ix-36,ay+24);
+      c.fillText('虛像（正立放大）', ix-44, iy-16);
+      drawDistanceLabel(c, ix, lx, ay+76, '像距 '+formatCm(Math.abs(v))+' cm', '#1b5e20');
+    } else {
+      const imgH = OBJ_H*Math.abs(v/u);
+      drawImageHint(c, 'left', ay, [
+        '虛像在凸透鏡左側',
+        ix < 8 ? '虛像在左方較遠處' : '像高太大，超出畫面',
+        '像距 '+formatCm(Math.abs(v))+' cm',
+        '像高 '+formatCm(imgH)+' cm'
+      ], '#1b5e20');
     }
   }
 
   // legend
-  [['#ef4444','平行主軸的光線'],['#16a34a','通過焦點的光線'],['#1565c0','通過光心的光線']].forEach(([col,txt],i)=>{
+  [['#ef4444','平行主軸的光線'],['#16a34a',greenLegend],['#1565c0','通過光心的光線']].forEach(([col,txt],i)=>{
     c.strokeStyle=col;c.lineWidth=2.5;
     line(c,14,16+i*22,46,16+i*22);
     c.fillStyle='#1a2b4a';c.font='13px sans-serif';
@@ -786,6 +872,24 @@ function arrowLine(c,x1,y1,x2,y2,col,lw){
   c.strokeStyle=col;c.lineWidth=lw;
   line(c,x1,y1,x2,y2);
   arrowHead(c,x2,y2,col,Math.atan2(y2-y1,x2-x1));
+}
+
+function drawDistanceLabel(c,x1,x2,y,text,col){
+  const left = Math.min(x1,x2), right = Math.max(x1,x2);
+  if(right-left < 24) return;
+  c.save();
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=1.6;
+  line(c,left,y,right,y);
+  arrowHead(c,left,y,col,Math.PI);
+  arrowHead(c,right,y,col,0);
+  c.font='bold 12px sans-serif';
+  const tw = c.measureText(text).width;
+  const tx = Math.max(8, Math.min((left+right)/2 - tw/2, c.canvas.width - tw - 8));
+  c.fillStyle='rgba(255,255,255,0.9)';
+  c.fillRect(tx-4, y+6, tw+8, 19);
+  c.fillStyle=col;
+  c.fillText(text, tx, y+20);
+  c.restore();
 }
 
 function formatCm(n){
@@ -825,6 +929,31 @@ function drawTextLabel(c,x,y,text,col,align){
   c.fillRect(tx-padX, y-12-padY, tw+padX*2, 15+padY*2);
   c.fillStyle=col;
   c.fillText(text, tx, y);
+  c.restore();
+}
+
+function drawImageHint(c,side,ay,lines,col){
+  c.save();
+  c.font='bold 13px sans-serif';
+  const pad=10, lineH=18;
+  const w=Math.max(...lines.map(t=>c.measureText(t).width))+pad*2;
+  const h=lines.length*lineH+pad*2-4;
+  const x=side==='left'?14:c.canvas.width-w-14;
+  const y=Math.max(18,Math.min(ay-h/2,c.canvas.height-h-18));
+  c.fillStyle='rgba(255,255,255,0.92)';
+  c.strokeStyle=col;
+  c.lineWidth=1.8;
+  c.fillRect(x,y,w,h);
+  c.strokeRect(x,y,w,h);
+  c.fillStyle=col;
+  lines.forEach((t,i)=>c.fillText(t,x+pad,y+pad+13+i*lineH));
+  c.beginPath();
+  if(side==='left'){
+    c.moveTo(x+w,y+h/2-7);c.lineTo(x+w+12,y+h/2);c.lineTo(x+w,y+h/2+7);
+  }else{
+    c.moveTo(x,y+h/2-7);c.lineTo(x-12,y+h/2);c.lineTo(x,y+h/2+7);
+  }
+  c.closePath();c.fill();
   c.restore();
 }
 
